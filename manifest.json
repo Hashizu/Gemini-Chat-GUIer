@@ -1,0 +1,13 @@
+{
+  "manifest_version": 3,
+  "name": "Gemini Chat GUIer",
+  "version": "0.1.0",
+  "description": "Renders interactive GUI components from JSON in Gemini chat.",
+  "content_scripts": [
+    {
+      "matches": ["https://gemini.google.com/app/*"],
+      "js": ["content.js"],
+      "css": ["style.css"]
+    }
+  ]
+}

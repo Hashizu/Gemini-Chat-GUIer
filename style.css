@@ -1,0 +1,37 @@
+/* CSS for Gemini Chat GUIer */
+.gemini-gui-container {
+  border: 1px solid #e0e0e0; /* 少し薄い境界線 */
+  padding: 16px;
+  border-radius: 8px;
+  margin: 8px 0;
+  background-color: #f8f9fa; /* Geminiの背景色に近づける */
+}
+
+.gemini-gui-label {
+  margin: 0 0 12px 0;
+  color: #202124; /* Geminiのテキスト色 */
+  font-size: 16px;
+}
+
+.gemini-gui-button-group {
+  display: flex;
+  flex-wrap: wrap; /* ボタンが多い場合に折り返す */
+  gap: 10px;
+}
+
+.gemini-gui-button {
+  background-color: #fff;
+  color: #1a73e8; /* Geminiのリンク色 */
+  border: 1px solid #dadce0; /* Geminiのボタン境界線 */
+  padding: 8px 16px;
+  border-radius: 18px; /* 角を丸くする */
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 14px;
+  transition: background-color 0.2s, box-shadow 0.2s;
+}
+
+.gemini-gui-button:hover {
+  background-color: #f0f6ff; /* ホバー時の背景色 */
+  border-color: #cce0ff;
+}

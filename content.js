@@ -1,0 +1,190 @@
+console.log("Gemini Chat GUIer content script loaded.");
+
+/**
+ * ユーザーのアクションをGeminiの入力欄に送信する（リトライ機能付き）
+ * @param {object} actionData - 送信するデータオブジェクト
+ * @param {number} retries - 残りのリトライ回数
+ */
+function sendActionToGemini(actionData, retries = 5) {
+  if (retries < 0) {
+    console.error('Could not find Gemini input field or send button after multiple retries.');
+    const jsonString = JSON.stringify(actionData);
+    navigator.clipboard.writeText(jsonString).then(() => {
+      alert('入力欄または送信ボタンが見つかりませんでした。送信するJSONをクリップボードにコピーしました。');
+    });
+    return;
+  }
+
+  const inputFieldSelector = 'div[aria-label="ここにプロンプトを入力してください"]';
+  const sendButtonSelector = 'div.send-button-container button';
+
+  const inputField = document.querySelector(inputFieldSelector);
+  const sendButton = document.querySelector(sendButtonSelector);
+
+  if (inputField && sendButton) {
+    inputField.textContent = JSON.stringify(actionData);
+    inputField.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
+
+    setTimeout(() => {
+      if (!sendButton.disabled) {
+        sendButton.click();
+        console.log('Sent action to Gemini:', JSON.stringify(actionData));
+      } else {
+        console.error('Send button is disabled.');
+        alert('送信ボタンが無効化されています。');
+      }
+    }, 100);
+  } else {
+    // 200ミリ秒待ってから再試行
+    setTimeout(() => sendActionToGemini(actionData, retries - 1), 200);
+  }
+}
+
+/**
+ * 指定されたJSONコードブロックをGUIに変換する
+ * @param {Element} codeBlock - コードブロックのDOM要素
+ */
+function renderGuiFromCodeBlock(codeBlock) {
+  const jsonString = codeBlock.textContent;
+  try {
+    const data = JSON.parse(jsonString);
+
+    if (data.type === 'button_set' && data.label && Array.isArray(data.buttons)) {
+      const guiContainer = document.createElement('div');
+      guiContainer.className = 'gemini-gui-container';
+
+      const label = document.createElement('p');
+      label.className = 'gemini-gui-label';
+      label.textContent = data.label;
+      guiContainer.appendChild(label);
+
+      const buttonGroup = document.createElement('div');
+      buttonGroup.className = 'gemini-gui-button-group';
+
+      data.buttons.forEach(buttonData => {
+        if (buttonData.text && buttonData.value) {
+          const button = document.createElement('button');
+          button.className = 'gemini-gui-button';
+          button.textContent = buttonData.text;
+          button.dataset.value = buttonData.value;
+          
+          button.addEventListener('click', () => {
+            const action = {
+              user_action: 'click',
+              value: button.dataset.value,
+              label: button.textContent
+            };
+            // リトライ機能付きの関数を呼び出す
+            sendActionToGemini(action);
+          });
+
+          buttonGroup.appendChild(button);
+        }
+      });
+
+      guiContainer.appendChild(buttonGroup);
+
+      const preElement = codeBlock.closest('pre');
+      if (preElement && preElement.parentElement) {
+        preElement.parentElement.replaceChild(guiContainer, preElement);
+        console.log('Successfully rendered GUI for button_set.');
+      }
+    }
+  } catch (e) {
+    // JSONとしてパースできない、または期待する形式でなければ何もしない
+  }
+}
+
+/**
+ * 指定されたJSONコードブロックをGUIに変換する
+ * @param {Element} codeBlock - コードブロックのDOM要素
+ */
+function renderGuiFromCodeBlock(codeBlock) {
+  const jsonString = codeBlock.textContent;
+  try {
+    const data = JSON.parse(jsonString);
+
+    // "button_set"タイプのJSONかどうかを判定
+    if (data.type === 'button_set' && data.label && Array.isArray(data.buttons)) {
+      const guiContainer = document.createElement('div');
+      guiContainer.className = 'gemini-gui-container';
+
+      const label = document.createElement('p');
+      label.className = 'gemini-gui-label';
+      label.textContent = data.label;
+      guiContainer.appendChild(label);
+
+      const buttonGroup = document.createElement('div');
+      buttonGroup.className = 'gemini-gui-button-group';
+
+      data.buttons.forEach(buttonData => {
+        if (buttonData.text && buttonData.value) {
+          const button = document.createElement('button');
+          button.className = 'gemini-gui-button';
+          button.textContent = buttonData.text;
+          button.dataset.value = buttonData.value;
+          
+          // ボタンにクリックイベントを追加
+          button.addEventListener('click', () => {
+            const action = {
+              user_action: 'click',
+              value: button.dataset.value,
+              label: button.textContent
+            };
+            sendActionToGemini(action);
+          });
+
+          buttonGroup.appendChild(button);
+        }
+      });
+
+      guiContainer.appendChild(buttonGroup);
+
+      const preElement = codeBlock.closest('pre');
+      if (preElement && preElement.parentElement) {
+        preElement.parentElement.replaceChild(guiContainer, preElement);
+        console.log('Successfully rendered GUI for button_set.');
+      }
+    }
+  } catch (e) {
+    // JSONとしてパースできない、または期待する形式でなければ何もしない
+  }
+}
+
+/**
+ * DOMノード内から目的のコードブロックを探して処理する
+ * @param {Node} node - 検索対象のDOMノード
+ */
+function findAndProcessCodeBlocks(node) {
+  // nodeがElement（要素ノード）で、querySelectorメソッドを持っているか確認
+  if (node.nodeType === Node.ELEMENT_NODE && typeof node.querySelectorAll === 'function') {
+    // Geminiのマークダウン内のコードブロックは <pre><code>...</code></pre> の形式と仮定
+    const codeBlocks = node.querySelectorAll('pre code');
+    codeBlocks.forEach(codeBlock => {
+      // 中身がJSONである可能性が高いか簡易的にチェック
+      if (codeBlock.textContent.trim().startsWith('{')) {
+        renderGuiFromCodeBlock(codeBlock);
+      }
+    });
+  }
+}
+
+// DOMの変更を監視するMutationObserverをセットアップ
+const observer = new MutationObserver((mutationsList, observer) => {
+  for(const mutation of mutationsList) {
+    if (mutation.type === 'childList') {
+      // 追加された各ノードに対して処理を実行
+      mutation.addedNodes.forEach(node => {
+        findAndProcessCodeBlocks(node);
+      });
+    }
+  }
+});
+
+// 監視を開始します。
+observer.observe(document.body, {
+  childList: true,
+  subtree: true
+});
+
+console.log("MutationObserver is now watching the DOM.");
