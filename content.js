@@ -233,6 +233,59 @@ function renderGuiFromCodeBlock(codeBlock) {
         console.log('Successfully rendered GUI for dropdown.');
       }
     }
+    // sliderタイプの処理
+    else if (data.type === 'slider' && data.label) {
+      const guiContainer = document.createElement('div');
+      guiContainer.className = 'gemini-gui-container';
+
+      const label = document.createElement('p');
+      label.className = 'gemini-gui-label';
+      label.textContent = data.label;
+      guiContainer.appendChild(label);
+
+      const sliderGroup = document.createElement('div');
+      sliderGroup.className = 'gemini-gui-slider-group';
+
+      const sliderInput = document.createElement('input');
+      sliderInput.type = 'range';
+      sliderInput.className = 'gemini-gui-slider';
+      sliderInput.min = data.min ?? 0;
+      sliderInput.max = data.max ?? 100;
+      sliderInput.step = data.step ?? 1;
+      sliderInput.value = data.value ?? 50;
+      
+      const valueDisplay = document.createElement('span');
+      valueDisplay.className = 'gemini-gui-slider-value';
+      valueDisplay.textContent = sliderInput.value;
+
+      sliderInput.addEventListener('input', () => {
+        valueDisplay.textContent = sliderInput.value;
+      });
+
+      sliderGroup.appendChild(sliderInput);
+      sliderGroup.appendChild(valueDisplay);
+      guiContainer.appendChild(sliderGroup);
+
+      const submitButton = document.createElement('button');
+      submitButton.className = 'gemini-gui-button';
+      submitButton.textContent = data.submit_text || 'Submit';
+      submitButton.style.marginTop = '12px';
+      guiContainer.appendChild(submitButton);
+
+      submitButton.addEventListener('click', () => {
+        const action = {
+          user_action: 'submit',
+          value: sliderInput.value
+        };
+        sendActionToGemini(action);
+      });
+
+      const preElement = codeBlock.closest('pre');
+      if (preElement && preElement.parentElement) {
+        preElement.parentElement.replaceChild(guiContainer, preElement);
+        console.log('Successfully rendered GUI for slider.');
+      }
+    }
 
   } catch (e) {
     // JSONとしてパースできない、または期待する形式でなければ何もしない
