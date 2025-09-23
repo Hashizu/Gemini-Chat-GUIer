@@ -190,6 +190,49 @@ function renderGuiFromCodeBlock(codeBlock) {
         console.log('Successfully rendered GUI for radio_group.');
       }
     }
+    // dropdownタイプの処理
+    else if (data.type === 'dropdown' && data.label && Array.isArray(data.options)) {
+      const guiContainer = document.createElement('div');
+      guiContainer.className = 'gemini-gui-container';
+
+      const label = document.createElement('p');
+      label.className = 'gemini-gui-label';
+      label.textContent = data.label;
+      guiContainer.appendChild(label);
+
+      const selectElement = document.createElement('select');
+      selectElement.className = 'gemini-gui-select';
+
+      data.options.forEach(optionData => {
+        if (optionData.text && optionData.value) {
+          const optionElement = document.createElement('option');
+          optionElement.value = optionData.value;
+          optionElement.textContent = optionData.text;
+          selectElement.appendChild(optionElement);
+        }
+      });
+      guiContainer.appendChild(selectElement);
+
+      const submitButton = document.createElement('button');
+      submitButton.className = 'gemini-gui-button';
+      submitButton.textContent = data.submit_text || 'Submit';
+      submitButton.style.marginTop = '12px';
+      guiContainer.appendChild(submitButton);
+
+      submitButton.addEventListener('click', () => {
+        const action = {
+          user_action: 'submit',
+          value: selectElement.value
+        };
+        sendActionToGemini(action);
+      });
+
+      const preElement = codeBlock.closest('pre');
+      if (preElement && preElement.parentElement) {
+        preElement.parentElement.replaceChild(guiContainer, preElement);
+        console.log('Successfully rendered GUI for dropdown.');
+      }
+    }
 
   } catch (e) {
     // JSONとしてパースできない、または期待する形式でなければ何もしない
