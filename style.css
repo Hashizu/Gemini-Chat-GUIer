@@ -35,3 +35,23 @@
   background-color: #f0f6ff; /* ホバー時の背景色 */
   border-color: #cce0ff;
 }
+
+/* --- text_input用のスタイル --- */
+.gemini-gui-input-group {
+  display: flex;
+  gap: 10px;
+}
+
+.gemini-gui-text-input {
+  flex-grow: 1; /* 横幅いっぱいまで広がる */
+  border: 1px solid #dadce0;
+  padding: 8px 12px;
+  border-radius: 18px;
+  font-size: 14px;
+  background-color: #fff;
+}
+
+.gemini-gui-text-input:focus {
+  outline: none;
+  border-color: #1a73e8; /* フォーカス時に青くする */
+}

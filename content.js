@@ -49,6 +49,7 @@ function renderGuiFromCodeBlock(codeBlock) {
   try {
     const data = JSON.parse(jsonString);
 
+    // button_setタイプの処理
     if (data.type === 'button_set' && data.label && Array.isArray(data.buttons)) {
       const guiContainer = document.createElement('div');
       guiContainer.className = 'gemini-gui-container';
@@ -74,7 +75,6 @@ function renderGuiFromCodeBlock(codeBlock) {
               value: button.dataset.value,
               label: button.textContent
             };
-            // リトライ機能付きの関数を呼び出す
             sendActionToGemini(action);
           });
 
@@ -89,23 +89,9 @@ function renderGuiFromCodeBlock(codeBlock) {
         preElement.parentElement.replaceChild(guiContainer, preElement);
         console.log('Successfully rendered GUI for button_set.');
       }
-    }
-  } catch (e) {
-    // JSONとしてパースできない、または期待する形式でなければ何もしない
-  }
-}
-
-/**
- * 指定されたJSONコードブロックをGUIに変換する
- * @param {Element} codeBlock - コードブロックのDOM要素
- */
-function renderGuiFromCodeBlock(codeBlock) {
-  const jsonString = codeBlock.textContent;
-  try {
-    const data = JSON.parse(jsonString);
-
-    // "button_set"タイプのJSONかどうかを判定
-    if (data.type === 'button_set' && data.label && Array.isArray(data.buttons)) {
+    } 
+    // text_inputタイプの処理
+    else if (data.type === 'text_input' && data.label) {
       const guiContainer = document.createElement('div');
       guiContainer.className = 'gemini-gui-container';
 
@@ -114,38 +100,37 @@ function renderGuiFromCodeBlock(codeBlock) {
       label.textContent = data.label;
       guiContainer.appendChild(label);
 
-      const buttonGroup = document.createElement('div');
-      buttonGroup.className = 'gemini-gui-button-group';
+      const inputGroup = document.createElement('div');
+      inputGroup.className = 'gemini-gui-input-group';
 
-      data.buttons.forEach(buttonData => {
-        if (buttonData.text && buttonData.value) {
-          const button = document.createElement('button');
-          button.className = 'gemini-gui-button';
-          button.textContent = buttonData.text;
-          button.dataset.value = buttonData.value;
-          
-          // ボタンにクリックイベントを追加
-          button.addEventListener('click', () => {
-            const action = {
-              user_action: 'click',
-              value: button.dataset.value,
-              label: button.textContent
-            };
-            sendActionToGemini(action);
-          });
+      const textInput = document.createElement('input');
+      textInput.type = 'text';
+      textInput.className = 'gemini-gui-text-input';
+      textInput.placeholder = data.placeholder || '';
+      inputGroup.appendChild(textInput);
 
-          buttonGroup.appendChild(button);
-        }
+      const submitButton = document.createElement('button');
+      submitButton.className = 'gemini-gui-button';
+      submitButton.textContent = data.submit_text || 'Submit';
+      inputGroup.appendChild(submitButton);
+
+      guiContainer.appendChild(inputGroup);
+
+      submitButton.addEventListener('click', () => {
+        const action = {
+          user_action: 'submit',
+          value: textInput.value
+        };
+        sendActionToGemini(action);
       });
-
-      guiContainer.appendChild(buttonGroup);
 
       const preElement = codeBlock.closest('pre');
       if (preElement && preElement.parentElement) {
         preElement.parentElement.replaceChild(guiContainer, preElement);
-        console.log('Successfully rendered GUI for button_set.');
+        console.log('Successfully rendered GUI for text_input.');
       }
     }
+
   } catch (e) {
     // JSONとしてパースできない、または期待する形式でなければ何もしない
   }
