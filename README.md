@@ -10,6 +10,8 @@ This extension monitors the Gemini chat output. When it detects a JSON code bloc
 
 本拡張機能はGeminiのチャット出力を監視します。定義済みのスキーマに一致するJSONコードブロックを検知すると、その部分を動的なHTMLのGUIコンポーネントに置き換えます。ユーザーがそのGUIを操作すると、その結果が再びJSON形式の文字列に変換され、新しいプロンプトとしてGeminiに送信されます。
 
+![sample image](sample/image.png)
+
 ## Features (MVP) / 主な機能（MVP）
 
 - **Detects JSON in Gemini:** Uses a `MutationObserver` to find JSON code blocks in real-time.
