@@ -130,6 +130,66 @@ function renderGuiFromCodeBlock(codeBlock) {
         console.log('Successfully rendered GUI for text_input.');
       }
     }
+    // radio_groupタイプの処理
+    else if (data.type === 'radio_group' && data.label && Array.isArray(data.options)) {
+      const guiContainer = document.createElement('div');
+      guiContainer.className = 'gemini-gui-container';
+
+      const label = document.createElement('p');
+      label.className = 'gemini-gui-label';
+      label.textContent = data.label;
+      guiContainer.appendChild(label);
+
+      const radioGroup = document.createElement('div');
+      radioGroup.className = 'gemini-gui-radio-group';
+      const groupName = `radio-group-${Date.now()}`;
+
+      data.options.forEach((optionData, index) => {
+        if (optionData.text && optionData.value) {
+          const optionContainer = document.createElement('div');
+          optionContainer.className = 'gemini-gui-radio-option';
+
+          const radioInput = document.createElement('input');
+          radioInput.type = 'radio';
+          radioInput.name = groupName;
+          radioInput.value = optionData.value;
+          radioInput.id = `${groupName}-${index}`;
+          if (index === 0) { radioInput.checked = true; }
+
+          const radioLabel = document.createElement('label');
+          radioLabel.textContent = optionData.text;
+          radioLabel.htmlFor = `${groupName}-${index}`;
+
+          optionContainer.appendChild(radioInput);
+          optionContainer.appendChild(radioLabel);
+          radioGroup.appendChild(optionContainer);
+        }
+      });
+      guiContainer.appendChild(radioGroup);
+
+      const submitButton = document.createElement('button');
+      submitButton.className = 'gemini-gui-button';
+      submitButton.textContent = data.submit_text || 'Submit';
+      submitButton.style.marginTop = '12px';
+      guiContainer.appendChild(submitButton);
+
+      submitButton.addEventListener('click', () => {
+        const selectedRadio = guiContainer.querySelector(`input[name="${groupName}"]:checked`);
+        if (selectedRadio) {
+          const action = {
+            user_action: 'submit',
+            value: selectedRadio.value
+          };
+          sendActionToGemini(action);
+        }
+      });
+
+      const preElement = codeBlock.closest('pre');
+      if (preElement && preElement.parentElement) {
+        preElement.parentElement.replaceChild(guiContainer, preElement);
+        console.log('Successfully rendered GUI for radio_group.');
+      }
+    }
 
   } catch (e) {
     // JSONとしてパースできない、または期待する形式でなければ何もしない

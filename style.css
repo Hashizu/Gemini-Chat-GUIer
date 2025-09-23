@@ -55,3 +55,21 @@
   outline: none;
   border-color: #1a73e8; /* フォーカス時に青くする */
 }
+
+/* --- radio_group用のスタイル --- */
+.gemini-gui-radio-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px; /* 各選択肢の間隔 */
+}
+
+.gemini-gui-radio-option {
+  display: flex;
+  align-items: center;
+  gap: 8px; /* ラジオボタンとラベルの間隔 */
+}
+
+.gemini-gui-radio-option label {
+  cursor: pointer;
+  font-size: 14px;
+}
