@@ -1,5 +1,104 @@
 console.log("Gemini Chat GUIer content script loaded.");
 
+// --- Start of added code for initial prompt ---
+
+// State variables to manage the initial prompt injection
+let promptSentForNewChat = false;
+let currentPath = window.location.pathname;
+let initialPrompt = null;
+
+/**
+ * Fetches the initial prompt content from the prompt.md file.
+ * Once fetched, it triggers a state check to see if the prompt should be sent.
+ */
+async function fetchInitialPrompt() {
+  try {
+    const response = await fetch(chrome.runtime.getURL('prompt.md'));
+    if (!response.ok) {
+      throw new Error(`Failed to fetch prompt.md: ${response.statusText}`);
+    }
+    initialPrompt = await response.text();
+    console.log("Initial prompt loaded successfully.");
+    // Immediately check the state in case the script loaded on the correct page.
+    handleChatStateChange();
+  } catch (error) {
+    console.error("Error loading initial prompt:", error);
+  }
+}
+
+/**
+ * Sends a raw text prompt to Gemini's input field (with retries).
+ * This is a variant of sendActionToGemini but for plain text.
+ * @param {string} promptText - The raw text to send.
+ * @param {number} retries - The number of remaining retries.
+ */
+function sendRawPrompt(promptText, retries = 5) {
+  if (retries < 0) {
+    console.error('Could not find Gemini input field or send button after multiple retries.');
+    // As a fallback, copy to clipboard, but don't alert for this automated action.
+    navigator.clipboard.writeText(promptText);
+    return;
+  }
+
+  const inputFieldSelector = 'div[aria-label="ここにプロンプトを入力してください"]';
+  const sendButtonSelector = 'div.send-button-container button';
+
+  const inputField = document.querySelector(inputFieldSelector);
+  const sendButton = document.querySelector(sendButtonSelector);
+
+  if (inputField && sendButton) {
+    inputField.textContent = promptText;
+    inputField.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
+
+    setTimeout(() => {
+      if (!sendButton.disabled) {
+        sendButton.click();
+        console.log('Sent initial prompt to Gemini.');
+      } else {
+        console.error('Initial prompt could not be sent because the send button was disabled.');
+      }
+    }, 100);
+  } else {
+    // Retry after 200ms
+    setTimeout(() => sendRawPrompt(promptText, retries - 1), 200);
+  }
+}
+
+/**
+ * Checks the current URL and chat state to decide whether to send the initial prompt.
+ * This function is designed to be called frequently (e.g., by a MutationObserver).
+ */
+function handleChatStateChange() {
+  const newPath = window.location.pathname;
+
+  // 1. Detect if the URL has changed.
+  if (newPath !== currentPath) {
+    currentPath = newPath;
+    // If we navigate to a specific chat (not a new one), reset the flag.
+    // This allows the prompt to be sent again if the user creates another new chat.
+    if (!currentPath.endsWith('/app') && !currentPath.endsWith('/app/')) {
+      if (promptSentForNewChat) {
+        console.log("Navigated to a specific chat. Resetting prompt-sent flag.");
+        promptSentForNewChat = false;
+      }
+    }
+  }
+
+  // 2. Check if conditions are met to send the prompt.
+  const isNewChatPage = currentPath.endsWith('/app') || currentPath.endsWith('/app/');
+  // Conditions: on a new chat page, prompt is loaded, and it hasn't been sent for this session.
+  if (isNewChatPage && initialPrompt && !promptSentForNewChat) {
+    // Also, make sure the input field is actually available in the DOM before trying to send.
+    if (document.querySelector('div[aria-label="ここにプロンプトを入力してください"]')) {
+      console.log("New chat page detected and ready. Sending initial prompt.");
+      sendRawPrompt(initialPrompt);
+      promptSentForNewChat = true; // Mark as sent
+    }
+  }
+}
+
+// --- End of added code ---
+
 /**
  * ユーザーのアクションをGeminiの入力欄に送信する（リトライ機能付き）
  * @param {object} actionData - 送信するデータオブジェクト
@@ -312,6 +411,9 @@ function findAndProcessCodeBlocks(node) {
 
 // DOMの変更を監視するMutationObserverをセットアップ
 const observer = new MutationObserver((mutationsList, observer) => {
+  // On any mutation, check the chat state, as it might indicate a navigation change in the SPA.
+  handleChatStateChange();
+
   for(const mutation of mutationsList) {
     if (mutation.type === 'childList') {
       // 追加された各ノードに対して処理を実行
@@ -327,5 +429,10 @@ observer.observe(document.body, {
   childList: true,
   subtree: true
 });
+
+// --- Start of added code ---
+// Fetch the initial prompt when the script is first loaded.
+fetchInitialPrompt();
+// --- End of added code ---
 
 console.log("MutationObserver is now watching the DOM.");
